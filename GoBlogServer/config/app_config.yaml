@@ -1,0 +1,23 @@
+server:
+  host: "127.0.0.1"
+  port: 8888
+
+database:
+  mysql:
+    url:  ""
+    username: "root"
+    password: "12345678"
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  auth:
+  read_timeout: 10
+  write_timeout: 10
+  min_idle_conn: 8
+
+jwt:
+  secret_key: "abc_2025*Blog"
+  expire_hour: 12
+
+

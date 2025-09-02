@@ -1,2 +1,5 @@
 Gin服务
 Zap 日志记录
+yaml.v3 配置解析器
+go-redis/redis/v8 Redis缓存
+golang-jwt/jwt/v5 JWT令牌
