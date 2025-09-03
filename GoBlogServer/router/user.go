@@ -11,6 +11,7 @@ func InitUserRouter(Router *gin.RouterGroup) {
 	//公共不需要token授权就能访问
 	userRoterPublic := Router.Group("user")
 	//注册路由
+
 	userRoterPublic.POST("/register", controller.Register)
 	userRoterPublic.POST("/login", controller.Login)
 

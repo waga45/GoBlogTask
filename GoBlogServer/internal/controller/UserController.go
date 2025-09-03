@@ -22,7 +22,7 @@ func (uc *UserController) Register(ctx *gin.Context) {
 	fmt.Println("开始注册流程")
 }
 
-func (uc *UserController) Login(ctx *gin.Context) {
+func (c *UserController) Login(ctx *gin.Context) {
 	fmt.Println("开始登入流程")
 	var vo vos.UserLoginVO
 	err := ctx.ShouldBindJSON(&vo)

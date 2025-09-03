@@ -30,6 +30,9 @@ var (
 )
 
 func GetJwtInstance() *JwtManager {
+	if instanceJwt == nil {
+		panic("JwtManager未完成初始化")
+	}
 	return instanceJwt
 }
 
