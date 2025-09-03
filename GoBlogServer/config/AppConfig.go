@@ -18,9 +18,10 @@ type AppConfig struct {
 	*/
 	Database struct {
 		Mysql struct {
-			Url      string `yaml:"url"`
-			Username string `yaml:"username"`
-			Password string `yaml:"password"`
+			Url         string `yaml:"url"`
+			MaxIdleConn int    `yaml:"max_idle_conn"`
+			MaxOpenConn int    `yaml:"max_open_conn"`
+			MaxIdleTime int    `yaml:"max_idle_time"`
 		}
 	}
 	/**

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS测试</title>
+</head>
+<body>
+    <h1>CORS测试页面</h1>
+    <button onclick="testCaptcha()">测试验证码接口</button>
+    <div id="result"></div>
+    
+    <script>
+        function testCaptcha() {
+            console.log('开始测试验证码接口...');
+            
+            fetch('http://127.0.0.1:8888/v1/user/captcha', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log('响应状态:', response.status);
+                console.log('响应头:', response.headers);
+                return response.json();
+            })
+            .then(data => {
+                console.log('响应数据:', data);
+                document.getElementById('result').innerHTML = 
+                    '<h3>成功!</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                console.error('请求错误:', error);
+                document.getElementById('result').innerHTML = 
+                    '<h3>错误!</h3><p style="color: red;">' + error.message + '</p>';
+            });
+        }
+    </script>
+</body>
+</html>

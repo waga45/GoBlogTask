@@ -1,5 +1,6 @@
 package dtos
 
 type LoginDto struct {
-	token string `json:"token"`
+	Token    string `json:"token"`
+	UserName string `json:"username"`
 }

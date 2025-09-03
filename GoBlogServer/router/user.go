@@ -1,21 +1,30 @@
 package router
 
 import (
+	"GoBlogServer/internal/container"
 	"GoBlogServer/internal/controller"
+	"GoBlogServer/internal/repository/mapper"
+	"GoBlogServer/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 // 初始化用户服务的路由
 // 是否需要授权这里定义
-func InitUserRouter(Router *gin.RouterGroup) {
+func InitUserRouter(Container *container.Container, Router *gin.RouterGroup) {
+	//InitBean
+	userMapper := mapper.NewUserMapper(Container.GetGormDb())
+	userService := service.NewUserService(userMapper)
+	captchaservice := service.NewCaptchaService()
+	userController := controller.NewUserController(userService, captchaservice)
+
 	//公共不需要token授权就能访问
 	userRoterPublic := Router.Group("user")
 	//注册路由
-
-	userRoterPublic.POST("/register", controller.Register)
-	userRoterPublic.POST("/login", controller.Login)
+	userRoterPublic.GET("/captcha", userController.Captcha)
+	userRoterPublic.POST("/register", userController.Register)
+	userRoterPublic.POST("/login", userController.Login)
 
 	//需要授权路由
 	userRoterPrivate := Router.Group("user")
-	userRoterPrivate.GET("/info", controller.UserInfo)
+	userRoterPrivate.GET("/info", userController.UserInfo)
 }
