@@ -84,6 +84,21 @@ func (uc *UserController) Login(ctx *gin.Context) {
 	response.Success(ctx, user)
 }
 
-func (uc *UserController) UserInfo(context *gin.Context) {
-
+/*
+*
+获取用户信息
+*/
+func (uc *UserController) UserInfo(ctx *gin.Context) {
+	userId := ctx.GetInt(constants.UserIdKey)
+	if userId <= 0 {
+		response.Error(ctx, constants.ResponseError, "请登入后操作")
+		return
+	}
+	info, err := uc.userService.GetUserInfo(userId)
+	if err != nil {
+		response.Error(ctx, constants.ResponseError, err.Error())
+		return
+	}
+	info.Password = ""
+	response.Success(ctx, info)
 }

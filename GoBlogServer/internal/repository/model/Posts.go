@@ -3,7 +3,7 @@ package model
 import "time"
 
 type Post struct {
-	Id         int        `gorm:"type:bigint;primary_key;AUTO_INCREMENT:false"`
+	Id         int64      `gorm:"type:bigint;primary_key;AUTO_INCREMENT:false"`
 	Title      string     `gorm:"type:varchar(255);comment:标题"`
 	Content    *string    `gorm:"type:text;comment:内容"`
 	UserId     int        `gorm:"type:int;comment:所属用户"`

@@ -5,7 +5,6 @@ import (
 	"GoBlogServer/initialize" //全局路由管理
 	"GoBlogServer/internal/component"
 	"GoBlogServer/internal/container"
-	"GoBlogServer/internal/middleware"
 	"GoBlogServer/internal/repository/dbInit"
 	"fmt"
 	"go.uber.org/zap" //zap日志记录
@@ -42,11 +41,9 @@ func main() {
 	Container.SetRedisInstance(redisClient)
 	//初始化路由+bean(这里bean按路由分组注入)
 	engine := initialize.Routers(Container)
-
-	zap.S().Infof("GoBlog服务已启动...")
-
 	//授权中间件
-	engine.Use(middleware.HandlerAuthWare())
+	//engine.Use(middleware.HandlerAuthWare())
+	zap.S().Infof("GoBlog服务已启动...")
 	err = engine.Run(fmt.Sprintf("%s:%d", appConfig.Server.Host, appConfig.Server.Port))
 	if err != nil {
 		zap.S().Panic("服务启动失败：", err)

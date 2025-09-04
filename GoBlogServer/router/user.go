@@ -3,6 +3,7 @@ package router
 import (
 	"GoBlogServer/internal/container"
 	"GoBlogServer/internal/controller"
+	"GoBlogServer/internal/middleware"
 	"GoBlogServer/internal/repository/mapper"
 	"GoBlogServer/internal/service"
 	"github.com/gin-gonic/gin"
@@ -26,5 +27,8 @@ func InitUserRouter(Container *container.Container, Router *gin.RouterGroup) {
 
 	//需要授权路由
 	userRoterPrivate := Router.Group("user")
+	//需要授权
+	userRoterPrivate.Use(middleware.HandlerAuthWare())
 	userRoterPrivate.GET("/info", userController.UserInfo)
+
 }

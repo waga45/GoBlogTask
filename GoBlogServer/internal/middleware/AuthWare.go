@@ -4,9 +4,9 @@ import (
 	"GoBlogServer/internal/component"
 	"GoBlogServer/internal/constants"
 	"GoBlogServer/internal/response"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func HandlerAuthWare() gin.HandlerFunc {
@@ -23,8 +23,9 @@ func HandlerAuthWare() gin.HandlerFunc {
 			response.Error(c, constants.ResponseAuthFail, "授权失败")
 			return
 		}
+		fmt.Println(payload)
 		//解析注入用户id
-		c.Header(constants.UserIdKey, string(strconv.Itoa(payload.UserId)))
+		c.Set(constants.UserIdKey, payload.UserId)
 		c.Next()
 	}
 }

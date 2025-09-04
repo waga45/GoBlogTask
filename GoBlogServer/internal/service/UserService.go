@@ -4,6 +4,7 @@ import (
 	"GoBlogServer/internal/component"
 	"GoBlogServer/internal/dtos"
 	"GoBlogServer/internal/repository/mapper"
+	"GoBlogServer/internal/repository/model"
 	"GoBlogServer/internal/vos"
 	"GoBlogServer/utils"
 	"errors"
@@ -56,6 +57,21 @@ func (u *UserService) UserLogin(vo *vos.UserLoginVO) (*dtos.LoginDto, error) {
 	}
 	u.userMapper.UpdateUserLoginTime(user.Id)
 	return genLoginAuth(user.Id, user.UserName), nil
+}
+
+/*
+*
+获取用户信息
+*/
+func (u *UserService) GetUserInfo(id int) (*model.Users, error) {
+	if id <= 0 {
+		return nil, errors.New("error")
+	}
+	user, err := u.userMapper.SelectById(id)
+	if err != nil {
+		return nil, errors.New("该用户信息不存在")
+	}
+	return user, nil
 }
 
 func genLoginAuth(id int, name string) *dtos.LoginDto {

@@ -24,5 +24,6 @@ func Routers(container *container.Container) *gin.Engine {
 
 	groupV1 := engine.Group("/v1")
 	router.InitUserRouter(container, groupV1)
+	router.InitPostsRouter(container, groupV1)
 	return engine
 }
