@@ -11,10 +11,10 @@ import (
 // 初始化管理路由
 func Routers(container *container.Container) *gin.Engine {
 	engine := gin.Default()
-	engine.Use(cors.Default())
+	//engine.Use(cors.Default())
 	// 或者使用自定义配置（生产环境推荐）
 	engine.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*", "http://localhost:3000"},                                // 允许的源，谨慎使用 "*"
+		AllowOrigins:     []string{"*", "http://localhost:8080"},                                // 允许的源，谨慎使用 "*"
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},  // 允许的 HTTP 方法
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"}, // 允许的请求头
 		ExposeHeaders:    []string{"Content-Length"},                                            // 允许客户端访问的响应头

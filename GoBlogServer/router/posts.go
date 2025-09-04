@@ -3,6 +3,7 @@ package router
 import (
 	"GoBlogServer/internal/container"
 	"GoBlogServer/internal/controller"
+	"GoBlogServer/internal/middleware"
 	"GoBlogServer/internal/repository/mapper"
 	"GoBlogServer/internal/service"
 	"github.com/gin-gonic/gin"
@@ -19,8 +20,10 @@ func InitPostsRouter(Container *container.Container, Router *gin.RouterGroup) {
 	controller := controller.NewPostsController(postService)
 	//路由
 	userRouterPrivate := Router.Group("posts")
+	userRouterPrivate.Use(middleware.HandlerAuthWare())
+	userRouterPrivate.POST("list", controller.GetList)
 	userRouterPrivate.POST("new", controller.AddNewPosts)
 	userRouterPrivate.POST("update", controller.UpdatePosts)
-	userRouterPrivate.POST("detail", controller.GetPostDetail)
+	userRouterPrivate.GET("detail", controller.GetPostDetail)
 	userRouterPrivate.POST("remove", controller.RemovePosts)
 }

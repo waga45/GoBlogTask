@@ -18,61 +18,6 @@
         />
       </el-form-item>
       
-      <!-- 文章摘要 -->
-      <el-form-item label="文章摘要" prop="summary">
-        <el-input
-          v-model="articleForm.summary"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入文章摘要"
-          maxlength="200"
-          show-word-limit
-        />
-      </el-form-item>
-      
-      <!-- 文章分类 -->
-      <el-form-item label="文章分类" prop="category">
-        <el-select
-          v-model="articleForm.category"
-          placeholder="请选择文章分类"
-          style="width: 200px"
-        >
-          <el-option label="技术分享" value="tech" />
-          <el-option label="生活随笔" value="life" />
-          <el-option label="学习笔记" value="study" />
-          <el-option label="项目总结" value="project" />
-        </el-select>
-      </el-form-item>
-      
-      <!-- 文章标签 -->
-      <el-form-item label="文章标签">
-        <el-tag
-          v-for="tag in articleForm.tags"
-          :key="tag"
-          closable
-          @close="removeTag(tag)"
-          style="margin-right: 10px"
-        >
-          {{ tag }}
-        </el-tag>
-        <el-input
-          v-if="inputVisible"
-          ref="saveTagInput"
-          v-model="inputValue"
-          size="small"
-          style="width: 100px"
-          @keyup.enter.native="handleInputConfirm"
-          @blur="handleInputConfirm"
-        />
-        <el-button
-          v-else
-          size="small"
-          @click="showInput"
-        >
-          + 添加标签
-        </el-button>
-      </el-form-item>
-      
       <!-- 文章内容 -->
       <el-form-item label="文章内容" prop="content">
         <el-input
@@ -85,9 +30,9 @@
       
       <!-- 文章状态 -->
       <el-form-item label="文章状态">
-        <el-radio-group v-model="articleForm.status">
-          <el-radio label="draft">保存为草稿</el-radio>
-          <el-radio label="published">立即发布</el-radio>
+        <el-radio-group v-model="articleForm.state">
+          <el-radio :label="0">草稿(无效)</el-radio>
+          <el-radio :label="1">发布(有效)</el-radio>
         </el-radio-group>
       </el-form-item>
       
@@ -123,11 +68,7 @@
       <div class="preview-content">
         <h2>{{ articleForm.title }}</h2>
         <div class="article-meta">
-          <span>分类：{{ getCategoryName(articleForm.category) }}</span>
-          <span v-if="articleForm.tags.length">标签：{{ articleForm.tags.join(', ') }}</span>
-        </div>
-        <div class="article-summary">
-          <strong>摘要：</strong>{{ articleForm.summary }}
+          <span>状态：{{ articleForm.state === 1 ? '有效' : '无效' }}</span>
         </div>
         <div class="article-content">
           <pre>{{ articleForm.content }}</pre>
@@ -146,33 +87,21 @@ export default {
       articleId: null,
       submitLoading: false,
       previewVisible: false,
-      inputVisible: false,
-      inputValue: '',
       // 文章表单数据
       articleForm: {
         title: '',
-        summary: '',
         content: '',
-        category: '',
-        tags: [],
-        status: 'draft'
+        state: 1
       },
       // 表单验证规则
       articleRules: {
         title: [
           { required: true, message: '请输入文章标题', trigger: 'blur' },
-          { min: 5, max: 100, message: '标题长度在 5 到 100 个字符', trigger: 'blur' }
-        ],
-        summary: [
-          { required: true, message: '请输入文章摘要', trigger: 'blur' },
-          { min: 10, max: 200, message: '摘要长度在 10 到 200 个字符', trigger: 'blur' }
+          { min: 1, max: 100, message: '标题长度在 1 到 100 个字符', trigger: 'blur' }
         ],
         content: [
           { required: true, message: '请输入文章内容', trigger: 'blur' },
-          { min: 50, message: '文章内容至少50个字符', trigger: 'blur' }
-        ],
-        category: [
-          { required: true, message: '请选择文章分类', trigger: 'change' }
+          { min: 1, message: '文章内容不能为空', trigger: 'blur' }
         ]
       }
     }
@@ -183,16 +112,20 @@ export default {
      */
     async getArticleDetail() {
       try {
-        const response = await this.$http.get(`/articles/${this.articleId}`)
-        const { data } = response.data
+        const response = await this.$http.get('/posts/detail', {
+          params: { id: String(this.articleId) } // 确保ID作为字符串传递
+        })
         
-        this.articleForm = {
-          title: data.title || '',
-          summary: data.summary || '',
-          content: data.content || '',
-          category: data.category || '',
-          tags: data.tags || [],
-          status: data.status || 'draft'
+        if (response.data.code === 100) {
+          const { data } = response.data
+          this.articleForm = {
+            title: data.title || '',
+            content: data.content || '',
+            state: data.state || 1
+          }
+        } else {
+          this.$message.error(response.data.message || '获取文章详情失败')
+          this.$router.push('/articles')
         }
       } catch (error) {
         this.$message.error(error.response?.data?.message || '获取文章详情失败')
@@ -208,17 +141,27 @@ export default {
         if (valid) {
           this.submitLoading = true
           try {
+            let response
             if (this.isEdit) {
               // 更新文章
-              await this.$http.put(`/articles/${this.articleId}`, this.articleForm)
-              this.$message.success('文章更新成功')
+              const updateData = {
+                id: this.articleId, // 保持字符串格式，避免long类型精度丢失
+                title: this.articleForm.title,
+                content: this.articleForm.content,
+                state: this.articleForm.state
+              }
+              response = await this.$http.post('/posts/update', updateData)
             } else {
               // 创建文章
-              await this.$http.post('/articles', this.articleForm)
-              this.$message.success('文章保存成功')
+              response = await this.$http.post('/posts/new', this.articleForm)
             }
             
-            this.$router.push('/articles')
+            if (response.data.code === 100) {
+              this.$message.success(this.isEdit ? '文章更新成功' : '文章创建成功')
+              this.$router.push('/articles')
+            } else {
+              this.$message.error(response.data.message || '操作失败')
+            }
           } catch (error) {
             this.$message.error(error.response?.data?.message || '操作失败')
           } finally {
@@ -252,51 +195,6 @@ export default {
         return
       }
       this.previewVisible = true
-    },
-    
-    /**
-     * 显示标签输入框
-     */
-    showInput() {
-      this.inputVisible = true
-      this.$nextTick(() => {
-        this.$refs.saveTagInput.$refs.input.focus()
-      })
-    },
-    
-    /**
-     * 确认添加标签
-     */
-    handleInputConfirm() {
-      const inputValue = this.inputValue.trim()
-      if (inputValue && !this.articleForm.tags.includes(inputValue)) {
-        this.articleForm.tags.push(inputValue)
-      }
-      this.inputVisible = false
-      this.inputValue = ''
-    },
-    
-    /**
-     * 移除标签
-     */
-    removeTag(tag) {
-      const index = this.articleForm.tags.indexOf(tag)
-      if (index > -1) {
-        this.articleForm.tags.splice(index, 1)
-      }
-    },
-    
-    /**
-     * 获取分类名称
-     */
-    getCategoryName(category) {
-      const categoryMap = {
-        tech: '技术分享',
-        life: '生活随笔',
-        study: '学习笔记',
-        project: '项目总结'
-      }
-      return categoryMap[category] || category
     }
   },
   
