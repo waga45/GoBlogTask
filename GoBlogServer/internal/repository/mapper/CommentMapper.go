@@ -3,6 +3,7 @@ package mapper
 import (
 	"GoBlogServer/internal/dtos"
 	"GoBlogServer/internal/repository/model"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -35,7 +36,7 @@ func (c *CommentMapper) SaveNew(optUserId int, postId int64, content string) (in
 删除评论
 */
 func (c *CommentMapper) UpdateDisable(id int) (bool, error) {
-	r := c.db.Model(&model.Comments{}).Where("id=?").UpdateColumn("state", 0)
+	r := c.db.Model(&model.Comments{}).Where("id=?", id).UpdateColumn("state", 0)
 	if r.Error != nil {
 		return false, r.Error
 	}
@@ -47,7 +48,7 @@ func (c *CommentMapper) UpdateDisable(id int) (bool, error) {
 根据文章id分页查询评论列表
 */
 func (c *CommentMapper) GetListByPosts(postId int64, pageOffset int, pageSize int) (*dtos.BasePageDto[dtos.PostCommentDto], error) {
-	varSqlCount := "select bc.id,bu.user_name as userName,bc.content,bc.create_time as createTime " +
+	varSqlCount := "select count(bc.id) " +
 		"from blog_comments bc " +
 		"JOIN blog_users bu on bu.id=bc.user_id " +
 		"where bc.post_id=? and bc.state=1 " +
@@ -63,11 +64,12 @@ func (c *CommentMapper) GetListByPosts(postId int64, pageOffset int, pageSize in
 		"where bc.post_id=? and bc.state=1 " +
 		"order by bc.create_time asc " +
 		"limit ?,?"
-	var list = dtos.PostCommentDto{}
-	tx := c.db.Raw(varSqlQuery, postId, pageOffset, pageSize).Scan(&list)
+	var list = []dtos.PostCommentDto{}
+	tx := c.db.Debug().Raw(varSqlQuery, postId, pageOffset, pageSize).Scan(&list)
 	if tx.Error != nil {
 		return &dtos.BasePageDto[dtos.PostCommentDto]{}, tx.Error
 	}
+	fmt.Println(list)
 	var result = dtos.BasePageDto[dtos.PostCommentDto]{TotalCount: totalNum, List: &list}
 	return &result, nil
 }

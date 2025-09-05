@@ -83,22 +83,46 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="240" fixed="right">
         <template slot-scope="scope">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="editArticle(scope.row)"
-          >
-            编辑
-          </el-button>
-          <el-button
-            size="mini"
-            type="danger"
-            @click="deleteArticle(scope.row)"
-          >
-            删除
-          </el-button>
+          <div class="action-buttons">
+            <el-button
+              size="mini"
+              type="info"
+              icon="el-icon-view"
+              @click="viewArticle(scope.row)"
+              plain
+            >
+              查看
+            </el-button>
+            <el-button
+              size="mini"
+              type="primary"
+              icon="el-icon-edit"
+              @click="editArticle(scope.row)"
+              plain
+            >
+              编辑
+            </el-button>
+            <el-button
+              size="mini"
+              type="success"
+              icon="el-icon-chat-dot-round"
+              @click="showComments(scope.row)"
+              plain
+            >
+              评论
+            </el-button>
+            <el-button
+              size="mini"
+              type="danger"
+              icon="el-icon-delete"
+              @click="deleteArticle(scope.row)"
+              plain
+            >
+              删除
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -115,8 +139,180 @@
         :total="pagination.total"
       />
     </div>
-  </div>
-</template>
+
+    <!-- 评论弹框 -->
+    <el-dialog
+      :title="commentDialog.title"
+      :visible.sync="commentDialog.visible"
+      width="70%"
+      :before-close="closeCommentDialog"
+      class="comment-dialog"
+    >
+      <div v-loading="commentDialog.loading">
+        <!-- 添加评论表单 -->
+        <div class="add-comment-section">
+          <h4>添加评论</h4>
+          <el-input
+            v-model="newComment.content"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入评论内容..."
+            maxlength="500"
+            show-word-limit
+          ></el-input>
+          <div class="comment-actions">
+            <el-button type="primary" @click="addComment()">发表评论</el-button>
+          </div>
+        </div>
+
+        <!-- 评论列表 -->
+        <div class="comment-list-section">
+          <h4>评论列表 ({{ commentPagination.total }}条)</h4>
+          <div v-if="commentList.length === 0" class="no-comments">
+            <el-empty description="暂无评论"></el-empty>
+          </div>
+          <div v-else>
+            <div
+              v-for="comment in commentList"
+              :key="comment.id"
+              class="comment-item"
+            >
+              <div class="comment-header">
+                <span class="comment-user">{{ comment.userName }}</span>
+                <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
+                <el-button
+                  type="text"
+                  size="mini"
+                  class="delete-btn"
+                  @click="deleteComment(comment)"
+                >
+                  删除
+                </el-button>
+              </div>
+              <div class="comment-content">{{ comment.content }}</div>
+            </div>
+          </div>
+
+          <!-- 评论分页 -->
+          <div v-if="commentPagination.total > 0" class="comment-pagination">
+            <el-pagination
+              @size-change="handleCommentSizeChange"
+              @current-change="handleCommentCurrentChange"
+              :current-page="commentPagination.page"
+              :page-sizes="[5, 10, 20]"
+              :page-size="commentPagination.size"
+              layout="total, sizes, prev, pager, next"
+              :total="commentPagination.total"
+              small
+            />
+          </div>
+        </div>
+      </div>
+     </el-dialog>
+
+     <!-- 文章详情弹框 -->
+     <el-dialog
+       title="文章详情"
+       :visible.sync="articleDetail.visible"
+       width="80%"
+       :before-close="closeArticleDetailDialog"
+       class="article-detail-dialog"
+     >
+       <div v-loading="articleDetail.loading">
+         <!-- 文章内容部分 -->
+         <div class="article-detail-content">
+           <div class="article-header">
+             <h2 class="article-title">{{ articleDetail.data.Title || articleDetail.data.title || '无标题' }}</h2>
+             <div class="article-meta">
+               <span class="article-time">
+                 <i class="el-icon-time"></i>
+                 创建时间：{{ formatDate(articleDetail.data.CreateTime || articleDetail.data.createTime) }}
+               </span>
+               <span 
+                 class="article-status"
+                 :class="{
+                   'status-active': (articleDetail.data.State || articleDetail.data.state) === 1,
+                   'status-inactive': (articleDetail.data.State || articleDetail.data.state) !== 1
+                 }"
+               >
+                 {{ (articleDetail.data.State || articleDetail.data.state) === 1 ? '有效' : '无效' }}
+               </span>
+             </div>
+           </div>
+           
+           <div class="article-content-body">
+             <h4>文章内容：</h4>
+             <div class="content-text">
+               {{ articleDetail.data.Content || articleDetail.data.content || '无内容' }}
+             </div>
+           </div>
+         </div>
+
+         <!-- 评论部分 -->
+         <div class="article-comments-section">
+           <!-- 添加评论表单 -->
+           <div class="add-comment-section">
+             <h4>添加评论</h4>
+             <el-input
+               v-model="detailNewComment.content"
+               type="textarea"
+               :rows="3"
+               placeholder="请输入评论内容..."
+               maxlength="500"
+               show-word-limit
+             ></el-input>
+             <div class="comment-actions">
+               <el-button type="primary" @click="addDetailComment()">发表评论</el-button>
+             </div>
+           </div>
+
+           <!-- 评论列表 -->
+           <div class="comment-list-section">
+             <h4>评论列表 ({{ detailCommentPagination.total }}条)</h4>
+             <div v-if="detailCommentList.length === 0" class="no-comments">
+               <el-empty description="暂无评论"></el-empty>
+             </div>
+             <div v-else>
+               <div
+                 v-for="comment in detailCommentList"
+                 :key="comment.id"
+                 class="comment-item"
+               >
+                 <div class="comment-header">
+                   <span class="comment-user">{{ comment.userName }}</span>
+                   <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
+                   <el-button
+                     type="text"
+                     size="mini"
+                     class="delete-btn"
+                     @click="deleteDetailComment(comment)"
+                   >
+                     删除
+                   </el-button>
+                 </div>
+                 <div class="comment-content">{{ comment.content }}</div>
+               </div>
+             </div>
+
+             <!-- 评论分页 -->
+             <div v-if="detailCommentPagination.total > 0" class="comment-pagination">
+               <el-pagination
+                 @size-change="handleDetailCommentSizeChange"
+                 @current-change="handleDetailCommentCurrentChange"
+                 :current-page="detailCommentPagination.page"
+                 :page-sizes="[5, 10, 20]"
+                 :page-size="detailCommentPagination.size"
+                 layout="total, sizes, prev, pager, next"
+                 :total="detailCommentPagination.total"
+                 small
+               />
+             </div>
+           </div>
+         </div>
+       </div>
+     </el-dialog>
+   </div>
+ </template>
 
 <script>
 export default {
@@ -136,6 +332,38 @@ export default {
         page: 1,
         size: 10,
         total: 0
+      },
+      // 评论相关数据
+      commentDialog: {
+        visible: false,
+        title: '',
+        articleId: '',
+        loading: false
+      },
+      commentList: [],
+      commentPagination: {
+        page: 1,
+        size: 10,
+        total: 0
+      },
+      newComment: {
+        content: ''
+      },
+      // 文章详情弹框相关数据
+      articleDetail: {
+        visible: false,
+        loading: false,
+        data: {},
+        articleId: ''
+      },
+      detailCommentList: [],
+      detailCommentPagination: {
+        page: 1,
+        size: 10,
+        total: 0
+      },
+      detailNewComment: {
+        content: ''
       }
     }
   },
@@ -193,63 +421,33 @@ export default {
      * 查看文章详情
      */
     async viewArticle(article) {
+      // 设置文章详情数据
+      this.articleDetail = {
+        visible: true,
+        loading: true,
+        data: {},
+        articleId: String(article.id || article.Id)
+      }
+      this.detailCommentList = []
+      this.detailCommentPagination.page = 1
+      this.detailNewComment.content = ''
+
       try {
         const response = await this.$http.get('/posts/detail', {
-          params: { id: String(article.id) } // 确保ID作为字符串传递
+          params: { id: this.articleDetail.articleId }
         })
 
         if (response.data.code === 100) {
-          const { data } = response.data
-          const title = data.Title || data.title || '无标题'
-          const state = (data.State || data.state) === 1 ? '有效' : '无效'
-          const createTime = this.formatDate(data.CreateTime || data.createTime)
-          const content = data.Content || data.content || '无内容'
-          
-          // 构建自定义HTML内容
-          const htmlContent = `
-            <div style="padding: 20px; font-family: Arial, sans-serif;">
-              <!-- 标题部分 -->
-              <h2 style="margin: 0 0 20px 0; font-weight: bold; font-size: 20px; color: #333; border-bottom: 2px solid #409EFF; padding-bottom: 10px;">
-                ${title}
-              </h2>
-              
-              <!-- 时间和状态行 -->
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 10px 0; background-color: #f8f9fa; border-radius: 5px; padding: 15px;">
-                <span style="color: #666; font-size: 14px;">
-                  <i class="el-icon-time" style="margin-right: 5px;"></i>
-                  创建时间：${createTime}
-                </span>
-                <span style="padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; ${
-                  state === '有效' 
-                    ? 'background-color: #67C23A; color: white;' 
-                    : 'background-color: #F56C6C; color: white;'
-                }">
-                  ${state}
-                </span>
-              </div>
-              
-              <!-- 内容部分 -->
-              <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
-                <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">文章内容：</h4>
-                <div style="background-color: #fafafa; padding: 20px; border-radius: 8px; border-left: 4px solid #409EFF; line-height: 1.6; color: #555; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">
-                  ${content}
-                </div>
-              </div>
-            </div>
-          `
-
-          this.$alert(htmlContent, '文章详情', {
-            dangerouslyUseHTMLString: true,
-            customClass: 'article-detail-dialog',
-            showClose: true,
-            closeOnClickModal: true,
-            closeOnPressEscape: true
-          })
+          this.articleDetail.data = response.data.data
+          // 同时加载评论列表
+          await this.getDetailCommentList()
         } else {
           this.$message.error(response.data.message || '获取文章详情失败')
         }
       } catch (error) {
         this.$message.error(error.response?.data?.message || '获取文章详情失败')
+      } finally {
+        this.articleDetail.loading = false
       }
     },
 
@@ -321,6 +519,245 @@ export default {
       if (!dateString) return '-'
       const date = new Date(dateString)
       return date.toLocaleString('zh-CN')
+    },
+
+    /**
+     * 显示评论弹框
+     */
+    async showComments(article) {
+      this.commentDialog.visible = true
+      this.commentDialog.title = article.title || article.Title || '文章评论'
+      this.commentDialog.articleId = String(article.id || article.Id)
+      this.commentPagination.page = 1
+      this.newComment.content = ''
+      await this.getCommentList()
+    },
+
+    /**
+     * 获取评论列表
+     */
+    async getCommentList() {
+      this.commentDialog.loading = true
+      try {
+        const requestData = {
+          postId: this.commentDialog.articleId,
+          pageIndex: this.commentPagination.page,
+          pageSize: this.commentPagination.size
+        }
+
+        const response = await this.$http.post('comments/list', requestData)
+
+        if (response.data.code === 100) {
+          const { data } = response.data
+          this.commentList = data.list || []
+          this.commentPagination.total = data.totalCount || 0
+        } else {
+          this.$message.error(response.data.message || '获取评论列表失败')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.message || '获取评论列表失败')
+      } finally {
+        this.commentDialog.loading = false
+      }
+    },
+
+    /**
+     * 添加评论
+     */
+    async addComment() {
+      if (!this.newComment.content.trim()) {
+        this.$message.warning('请输入评论内容')
+        return
+      }
+
+      try {
+        const requestData = {
+          postId: this.commentDialog.articleId,
+          content: this.newComment.content.trim()
+        }
+
+        const response = await this.$http.post('comments/new', requestData)
+
+        if (response.data.code === 100) {
+          this.$message.success('评论添加成功')
+          this.newComment.content = ''
+          this.commentPagination.page = 1
+          await this.getCommentList()
+        } else {
+          this.$message.error(response.data.message || '添加评论失败')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.message || '添加评论失败')
+      }
+    },
+
+    /**
+     * 删除评论
+     */
+    async deleteComment(comment) {
+      try {
+        await this.$confirm('确定要删除这条评论吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        const requestData = {
+          postId: this.commentDialog.articleId,
+          id: Number(comment.id)
+        }
+
+        const response = await this.$http.post('comments/disable', requestData)
+
+        if (response.data.code === 100) {
+          this.$message.success('删除成功')
+          await this.getCommentList()
+        } else {
+          this.$message.error(response.data.message || '删除失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          this.$message.error(error.response?.data?.message || '删除失败')
+        }
+      }
+    },
+
+    /**
+     * 处理评论分页大小变化
+     */
+    handleCommentSizeChange(size) {
+      this.commentPagination.size = size
+      this.commentPagination.page = 1
+      this.getCommentList()
+    },
+
+    /**
+     * 处理评论当前页变化
+     */
+    handleCommentCurrentChange(page) {
+      this.commentPagination.page = page
+      this.getCommentList()
+    },
+
+    /**
+     * 关闭评论弹框
+     */
+    closeCommentDialog() {
+      this.commentDialog.visible = false
+      this.commentList = []
+      this.newComment.content = ''
+    },
+
+    /**
+     * 获取文章详情页面的评论列表
+     */
+    async getDetailCommentList() {
+      try {
+        const requestData = {
+          postId: this.articleDetail.articleId,
+          pageIndex: this.detailCommentPagination.page,
+          pageSize: this.detailCommentPagination.size
+        }
+
+        const response = await this.$http.post('comments/list', requestData)
+
+        if (response.data.code === 100) {
+          const { data } = response.data
+          this.detailCommentList = data.list || []
+          this.detailCommentPagination.total = data.totalCount || 0
+        } else {
+          this.$message.error(response.data.message || '获取评论列表失败')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.message || '获取评论列表失败')
+      }
+    },
+
+    /**
+     * 在文章详情页面添加评论
+     */
+    async addDetailComment() {
+      if (!this.detailNewComment.content.trim()) {
+        this.$message.warning('请输入评论内容')
+        return
+      }
+
+      try {
+        const requestData = {
+          postId: this.articleDetail.articleId,
+          content: this.detailNewComment.content.trim()
+        }
+
+        const response = await this.$http.post('comments/new', requestData)
+
+        if (response.data.code === 100) {
+          this.$message.success('评论添加成功')
+          this.detailNewComment.content = ''
+          this.detailCommentPagination.page = 1
+          await this.getDetailCommentList()
+        } else {
+          this.$message.error(response.data.message || '添加评论失败')
+        }
+      } catch (error) {
+        this.$message.error(error.response?.data?.message || '添加评论失败')
+      }
+    },
+
+    /**
+     * 在文章详情页面删除评论
+     */
+    async deleteDetailComment(comment) {
+      try {
+        await this.$confirm('确定要删除这条评论吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        const requestData = {
+          postId: this.articleDetail.articleId,
+          id: Number(comment.id)
+        }
+
+        const response = await this.$http.post('comments/disable', requestData)
+
+        if (response.data.code === 100) {
+          this.$message.success('删除成功')
+          await this.getDetailCommentList()
+        } else {
+          this.$message.error(response.data.message || '删除失败')
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          this.$message.error(error.response?.data?.message || '删除失败')
+        }
+      }
+    },
+
+    /**
+     * 处理文章详情评论分页大小变化
+     */
+    handleDetailCommentSizeChange(size) {
+      this.detailCommentPagination.size = size
+      this.detailCommentPagination.page = 1
+      this.getDetailCommentList()
+    },
+
+    /**
+     * 处理文章详情评论当前页变化
+     */
+    handleDetailCommentCurrentChange(page) {
+      this.detailCommentPagination.page = page
+      this.getDetailCommentList()
+    },
+
+    /**
+     * 关闭文章详情弹框
+     */
+    closeArticleDetailDialog() {
+      this.articleDetail.visible = false
+      this.detailCommentList = []
+      this.detailNewComment.content = ''
     }
   },
 
@@ -358,15 +795,310 @@ export default {
   white-space: nowrap;
   max-width: 280px;
 }
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+.action-buttons .el-button {
+  margin: 0;
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.action-buttons .el-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 </style>
 
 <style>
+/* 评论弹框样式 */
+.comment-dialog .el-dialog__body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.add-comment-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.add-comment-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.comment-actions {
+  margin-top: 15px;
+  text-align: right;
+}
+
+.comment-list-section h4 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 16px;
+  border-bottom: 2px solid #409EFF;
+  padding-bottom: 10px;
+}
+
+.comment-item {
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  transition: box-shadow 0.2s;
+}
+
+.comment-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.comment-user {
+  font-weight: bold;
+  color: #409EFF;
+  font-size: 14px;
+}
+
+.comment-time {
+  color: #999;
+  font-size: 12px;
+}
+
+.delete-btn {
+  color: #f56c6c !important;
+}
+
+.delete-btn:hover {
+  color: #f56c6c !important;
+  background-color: #fef0f0 !important;
+}
+
+.comment-content {
+  color: #555;
+  line-height: 1.6;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.no-comments {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.comment-pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
 /* 文章详情弹框样式 */
-.article-detail-dialog {
-  width: 60% !important;
-  min-height: 500px !important;
-  max-width: 800px !important;
-  min-width: 600px !important;
+.article-detail-dialog .el-dialog {
+  width: 80% !important;
+  max-width: 1200px !important;
+  min-width: 800px !important;
+  margin: 5vh auto !important;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  transform: none !important;
+  left: 50% !important;
+  top: 5vh !important;
+  margin-left: -40% !important;
+}
+
+.article-detail-dialog .el-dialog__body {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 20px;
+  flex: 1;
+}
+
+.article-detail-content {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+
+.article-header {
+  margin-bottom: 20px;
+}
+
+.article-title {
+  margin: 0 0 15px 0;
+  font-weight: bold;
+  font-size: 24px;
+  color: #333;
+  border-bottom: 2px solid #409EFF;
+  padding-bottom: 10px;
+}
+
+.article-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+}
+
+.article-time {
+  color: #666;
+  font-size: 14px;
+}
+
+.article-time i {
+  margin-right: 5px;
+}
+
+.article-status {
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-active {
+  background-color: #67C23A;
+  color: white;
+}
+
+.status-inactive {
+  background-color: #F56C6C;
+  color: white;
+}
+
+.article-content-body h4 {
+  margin: 20px 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.content-text {
+  background-color: #fafafa;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #409EFF;
+  line-height: 1.6;
+  color: #555;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.article-comments-section {
+  border-top: 2px solid #eee;
+  padding-top: 20px;
+}
+
+.add-comment-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.add-comment-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.comment-actions {
+  margin-top: 15px;
+  text-align: right;
+}
+
+.comment-list-section h4 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 16px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.comment-item {
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease;
+}
+
+.comment-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.comment-user {
+  font-weight: bold;
+  color: #409EFF;
+  font-size: 14px;
+}
+
+.comment-time {
+  color: #999;
+  font-size: 12px;
+}
+
+.delete-btn {
+  color: #F56C6C !important;
+  padding: 0 !important;
+}
+
+.delete-btn:hover {
+  color: #F56C6C !important;
+  background-color: transparent !important;
+}
+
+.comment-content {
+  color: #555;
+  line-height: 1.6;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.no-comments {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.comment-pagination {
+  margin-top: 20px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
 }
 
 .article-detail-dialog .el-message-box {
